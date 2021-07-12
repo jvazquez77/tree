@@ -33,30 +33,40 @@ class Tree(object):
 
     This class provides Python programmatic access to the SDSS tree envionment structure
 
-    Parameters:
-        key (str|list):
+    Parameters
+    ----------
+        key : str | list
             A section or list of sections of the tree to add into the local environment
-        uproot_with (str):
+        uproot_with : str
             A new TREE_DIR path used to override an existing TREE_DIR environment variable
-        config (str):
+        config : str
             Name of manual config file to load.  Default is sdsswork.
-        update (bool):
+        update : bool
             If True, overwrites existing tree environment variables in your
             local environment.  Default is False.
-        exclude (list):
+        exclude : list
             A list of environment variables to exclude
             from forced updates
-        root (str):
+        root : str
             An absolute directory path to override as the software product root
-        git (bool):
+        git : bool
             If True, looks for SDSS_GIT_ROOT environment variable as product root instead
             of SDSS_SVN_ROOT
 
-    Attributes:
-        treedir (str):
+    Attributes
+    ----------
+        treedir : str
             The directory of the tree
-        environ (dict):
-            The fully loaded SDSS config file held internally
+        sasbasedir : str
+            The root directory of SAS
+        productroot_dir : str
+            The root directory of installed software products from svn or github
+        environ : dict
+            All of the environment paths defnined in the currntly loaded SDSS configuration file
+        paths : dict
+            All of the sdss_access paths defined in the currently loaded configuration
+        phase : int
+            Which SDSS phase the currently loaded config belongs to
 
     '''
     # possible software product roots
@@ -65,7 +75,8 @@ class Tree(object):
 
     def __init__(self, config=None, key=None, uproot_with=None, update=None, exclude=None,
                  product_root=None, git=None):
-        self.config_name = config or 'sdsswork'
+        self.config_name = config or os.getenv('TREE_VER', 'sdsswork')
+        self.release = self.get_release_from_config()
         self.exclude = exclude or []
         update = update or False
         self._keys = key
@@ -90,7 +101,15 @@ class Tree(object):
         self.set_product_root(root=product_root, git=git)
 
     def __repr__(self):
-        return ('Tree(sas_base_dir={0}, config={1})'.format(self.sasbasedir, self.config_name))
+        return ('Tree(sas_base_dir={0}, config={1}, release={2})'.format(self.sasbasedir, self.config_name, self.release))
+
+    @property
+    def phase(self):
+        ''' Return the phase of the survey from the loaded "work" environment '''
+        phase = self.environ['default'].get('phase', None)
+        if phase and phase.isdigit():
+            phase = int(phase)
+        return phase
 
     def list_keys(self):
         ''' List the available keys you can load '''
@@ -99,8 +118,9 @@ class Tree(object):
     def set_roots(self, uproot_with=None):
         ''' Set the roots of the tree in the os environment
 
-        Parameters:
-            uproot_with (str):
+        Parameters
+        ----------
+            uproot_with : str
                 A new TREE_DIR path used to override an existing TREE_DIR environment variable
 
         '''
@@ -125,13 +145,16 @@ class Tree(object):
         is identified, then recursively reads in all cfg files and builds
         a master config dictionary object
 
-        Parameters:
-            config (str):
+        Parameters
+        ----------
+            config : str
                 Optional name of config file to load
-            bases (list):
+            bases : list
                 A list of parent config files
 
-        Returns:
+        Returns
+        -------
+        dict
             A configParser dictionary object
         '''
 
@@ -170,11 +193,14 @@ class Tree(object):
         checks the config for syntax and existence.  Defaults to sdsswork
         or a DR if it doesn't exist.
 
-        Parameters:
-            config (str):
+        Parameters
+        ----------
+            config : str
                 The name of the config to check
 
-        Returns:
+        Returns
+        -------
+        str
             The (updated) name of the config
         '''
 
@@ -202,8 +228,9 @@ class Tree(object):
     def load_config(self, config=None):
         ''' Load a config file
 
-        Parameters:
-            config (str):
+        Parameters
+        ----------
+            config : str
                 Optional name of manual config file to load
         '''
 
@@ -229,13 +256,16 @@ class Tree(object):
         Creates a dictionary with environment definitions
         expanded out
 
-        Parameters:
-            config (str):
+        Parameters
+        ----------
+            config : str
                 Optional name of manual config file to load
-            sections (list):
+            sections : list
                 A list of config sections to load
 
-        Returns:
+        Returns
+        -------
+        dict
             An ordered dictionary of envvar definitions
         '''
 
@@ -279,10 +309,13 @@ class Tree(object):
         Extracts the PATHS section from a ConfigParser object
         and builds a dictionary of paths for sdss_access
 
-        Parameters:
-            cfg (object):
+        Parameters
+        ----------
+            cfg : object
                 A configParser object
-        Returns:
+        Returns
+        -------
+        dict
             An ordered dictionary of sdss_access path definitions
         '''
 
@@ -310,8 +343,9 @@ class Tree(object):
         tree environment for access later. Optionally can specify a specific
         branch.  This does not yet load them into the os environment.
 
-        Parameters:
-            limb (str|list):
+        Parameters
+        ----------
+            limb : str | list
                 A section or lists of sections of the config to add into the environ
 
         '''
@@ -334,8 +368,9 @@ class Tree(object):
     def add_limbs(self, key=None):
         ''' Add a new section from the tree into the existing os environment
 
-        Parameters:
-            key (str):
+        Parameters
+        ----------
+            key : str
                 The section name to grab from the environment
 
         '''
@@ -345,14 +380,16 @@ class Tree(object):
     def get_paths(self, key):
         ''' Retrieve a set of environment paths from the config
 
-        Parameters:
-            key (str):
+        Parameters
+        ----------
+            key : str
                 The section name to grab from the environment
 
-        Returns:
-            self.environ[newkey] (OrderedDict):
-                An ordered dict containing all of the paths from the
-                specified section, as key:val = name:path
+        Returns
+        -------
+        dict
+            An ordered dict containing all of the paths from the
+            specified section, as key:val = name:path
         '''
         newkey = key if key in self.environ else key.upper() if key.upper() \
             in self.environ else None
@@ -367,10 +404,11 @@ class Tree(object):
         This code goes through the tree environ and checks
         for existence in the os environ, then adds them
 
-        Parameters:
-            key (str):
+        Parameters
+        ----------
+            key : str
                 The section name to check against / add
-            update (bool):
+            update : bool
                 If True, overwrites existing tree environment variables in your
                 local environment.  Default is False.
         '''
@@ -387,11 +425,12 @@ class Tree(object):
     def _check_paths(self, paths, update=None):
         ''' Check if the path is in the os environ, and if not add it
 
-        Paramters:
-            paths (OrderedDict):
+        Paramters
+        ---------
+            paths : dict
                 An ordered dict containing all of the paths from the
                 a given section, as key:val = name:path
-            update (bool):
+            update : bool
                 If True, overwrites existing tree environment variables in your
                 local environment.  Default is False.
         '''
@@ -407,20 +446,48 @@ class Tree(object):
             elif pathname.upper() not in os.environ:
                 os.environ[pathname.upper()] = os.path.normpath(path)
 
-    def replant_tree(self, config=None, exclude=None):
-        ''' Replant the tree with a different config setup
+    def replant_tree(self, config=None, exclude=None, preserve_envvars=None):
+        """ Replant the tree with a different config setup
 
-        Parameters:
-            config (str):
+        Resets the python tree with the new config.  Automatically updates the session
+        os.environ with the new tree config environment variables.  If ``preserve_envvars``
+        is set to True, preserves the original os environ during tree update.  If
+        ``preserve_envvars`` is set to a list of environment variables, preserves only that
+        subset.
+
+        Parameters
+        ----------
+            config : str
                 The config name to reload
-            exclude (list):
-                A list of environment variables to exclude
-                from forced updates
-        '''
+            exclude : list
+                A list of environment variables to exclude from forced updates
+            preserve_envvars : bool | list
+                Flag to indicate some or all original environment variables to preserve
+        """
 
-        # reinitialize a new Tree with a new config
+        # reinitialize a new Tree with a new config and
+        # automatically overwrite any existing envvars
         config = 'sdsswork' if not config else config
         self.__init__(key=self._keys, config=config, update=True, exclude=exclude)
+
+        # look for any preserved envvars from the configuration file
+        if not preserve_envvars:
+            preserve_envvars = self._get_preserved_envvars()
+
+        orig = self.get_orig_os_environ()
+        if preserve_envvars is True:
+            # preserve the entire original os environ
+            os.environ.update(orig)
+        elif isinstance(preserve_envvars, (list, tuple)):
+            # preserve just a subset of envvars
+            for envvar in preserve_envvars:
+                if envvar in orig:
+                    os.environ[envvar] = orig[envvar]
+
+    def _get_preserved_envvars(self):
+        """ Retrieve any list of environment variables to preserve from the tree.yml config file """
+        preserved = cfg_params.get('preserve_envvars', None)
+        return preserved
 
     def list_configs(self):
         ''' List available configs to load '''
@@ -434,11 +501,14 @@ class Tree(object):
         Creates a dictionary environment for each config in the list of
         available configurations.
 
-        Parameters:
-            config (str):
+        Parameters
+        ----------
+            config : str
                 The config to show
 
-        Returns:
+        Returns
+        -------
+        dict
             A dictionary of config environment(s)
         '''
 
@@ -477,8 +547,9 @@ class Tree(object):
     def get_available_releases(cls, public=None):
         ''' Get the available releases
 
-        Parameters:
-            public (bool):
+        Parameters
+        ----------
+            public : bool
                 If True, only return public data releases
         '''
 
@@ -500,6 +571,22 @@ class Tree(object):
                 releases.append('WORK')
         return releases
 
+    def get_release_from_config(self) -> str:
+        """ Get a release name from a config
+
+        Convert a config name into its valid release name. All
+        "work" config, i.e. "sdsswork", belong to the "WORK" release.
+
+        Returns
+        -------
+        str
+            the release name
+        """
+        release = self.config_name.upper()
+        if 'work' in self.config_name or self.config_name == 'sdss5':
+            release = 'WORK'
+        return release
+
     @staticmethod
     def reset_os_environ():
         ''' Resets os.environ with the orignal cache before tree mods '''
@@ -508,7 +595,7 @@ class Tree(object):
     @staticmethod
     def get_orig_os_environ():
         ''' Returns the original os.environ '''
-        return orig_environ
+        return orig_environ.copy()
 
     def to_dict(self, collapse=True):
         ''' Convert tree environment to standard dicts
@@ -516,8 +603,9 @@ class Tree(object):
         Converts the nested ``tree.environ`` into a series of
         ordinary dicts.
 
-        Parameters:
-            collapse (bool):
+        Parameters
+        ----------
+            collapse : bool
                 If True, collapses nested dicts into a single dict.  Default is True.
         '''
         if collapse is False:
@@ -542,13 +630,16 @@ class Tree(object):
         PRODUCT_ROOT, SDSS_SVN_ROOT, SDSS_INSTALL_PRODUCT_ROOT, SDSS_PRODUCT_ROOT,
         SDSS4_PRODUCT_ROOT. If no root is found uses one directory up from SAS_BASE_DIR.
 
-        Parameters:
-            root (str):
+        Parameters
+        ----------
+            root : str
                 An absolute directory path to override as the product root
-            git (bool):
+            git : bool
                 If True, looks for SDSS_GIT_ROOT environment variable as product root.
 
-        Returns:
+        Returns
+        -------
+        dict
             The directory path to sdss-installed svn/git products
         '''
 
@@ -584,10 +675,11 @@ class Tree(object):
         SDSS_SVN_ROOT, SDSS_INSTALL_PRODUCT_ROOT, SDSS_PRODUCT_ROOT, SDSS4_PRODUCT_ROOT.
         If no root is found uses one directory up from SAS_BASE_DIR.
 
-        Parameters:
-            root (str):
+        Parameters
+        ----------
+            root : str
                 An absolute directory path to override as the product root
-            git (bool):
+            git : bool
                 If True, looks for SDSS_GIT_ROOT environment variable as product root.
 
         '''
@@ -595,15 +687,51 @@ class Tree(object):
         os.environ['PRODUCT_ROOT'] = product_root
         self.productroot_dir = product_root
 
+    def write_old_paths_inifile(self, no_pipe=None):
+        ''' Write out an old sdss_paths ini file
+
+        New syntax for special functions is "@[name]|" compared
+        to old syntax of "%[name]".  With no_pipe set to True,
+        converts the new syntax to exactly the old syntax.  If set to
+        False, will write special functions as "%[name]|".
+
+        Parameters
+        ----------
+            no_pipe : bool
+                If True, removes the special function | character
+        '''
+
+        paths_dir = os.path.join(self.treedir, 'data/sdss_paths.ini')
+        with open(paths_dir, 'w') as f:
+            f.write('# Paths for SDSS files. Each file type is given a template full path.\n')
+            f.write('# \n')
+            f.write('# This file has been deprecated as of tree/3.0.0 and sdss_access/1.0.0 \n')
+            f.write('# It should not be updated manually.  Use the tree.write_olds_paths method in \n')
+            f.write('# the python tree code to generate a new version of this file as needed.\n')
+            f.write('# \n')
+            f.write('\n')
+            f.write("[paths]\n")
+            for name, template in self.paths.items():
+                # switch special functions back to %
+                if no_pipe:
+                    template = template.replace('@', '%').replace('|', '')
+                else:
+                    template = template.replace('@', '%')
+                # write out path, template
+                f.write('{0} = {1}\n'.format(name, template))
+
 
 def get_tree_dir(uproot_with=None):
     ''' Return the path to the tree product directory
 
-    Parameters:
-        uproot_with (str):
+    Parameters
+    ----------
+        uproot_with : str
             A new TREE_DIR path used to override an existing TREE_DIR environment variable
 
-    Returns:
+    Returns
+    -------
+    str
         The path to the tree python product directory
     '''
     treedir = os.environ.get('TREE_DIR', None) if not uproot_with else uproot_with

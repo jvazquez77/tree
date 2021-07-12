@@ -6,6 +6,56 @@ Change Log
 
 This document records the main changes to the tree code.
 
+3.0.8 (unreleased)
+------------------
+
+3.0.7 (2020-03-05)
+------------------
+- Added method ``get_release_from_config`` to convert a given tree ``config_name`` into its release name.
+- Added a new ``release`` attribute, accessible on a ``Tree`` instance.
+- Fixing the mangarss path template with proper "wave" keyword arg, similar to mangacube
+- Adding new tree config for MaNGA release MPL-11
+
+3.0.6 (2020-11-11)
+------------------
+- Added dr17 release config
+- Added tree_version to bin, expected by some old/existing IDL product tags
+- Updated the path syntax for special functions to "@[function_name]|" to resolve issues with inclusion next to other characters
+- Added new sdss5 paths for apogee
+- Changed sdss5 paths for apogee from sdss4 to handle ``healpix`` grouping and simplified kwargs with special functions
+- Updating the code to write out old sdss_paths.ini file.
+- Added ``preserve_envvars`` options to ``replant_tree`` to preserve users original environment variables
+
+3.0.5 (2020-07-17)
+------------------
+- Added MaNGA MPL-10 release config
+- Added new paths for DR16+; VACs for APOGEE_JOKER
+
+3.0.4 (2020-06-04)
+------------------
+
+- Added `phase` property to python `tree`.  Tracks phase of current 'sdsswork' environment.
+- Modified module setup to create "default" symlink for lua modules
+- Added `write_old_paths_inifile` method to generate a version of the old sdss_paths.ini file
+- Adding new paths for DR16+; VACs for EBOSS_LSS, ATLAS, SPECTRO_LENSING, BOSS_QSO
+
+3.0.3 (2020-05-29)
+------------------
+
+- Removed specific version requirement 1.0.0 for sdss_access in module setup
+
+3.0.2 (2020-05-21)
+------------------
+
+- Added correct path for DR9 PHOTOSWEEPS
+- Corrected APOGEE_ASTRONN path in DR16
+- Added BCAM_DATA_2S to DR16
+
+3.0.1 (2020-05-21)
+------------------
+
+- Added prereqs to tree module files for sdss_access/1.0.0 and sdsstools/0.1.7
+
 3.0.0 (2020-05-07)
 ------------------
 
